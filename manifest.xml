@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LiveSlide — Office Add-in Manifest
+  ===================================
+  Before using this file, replace every instance of YOURUSERNAME
+  with your actual GitHub username.
+
+  Then in PowerPoint:
+    Insert → Get Add-ins → Upload My Add-in → choose this file
+-->
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:type="ContentApp">
+
+  <!-- Unique ID — do not change after first install -->
+  <Id>3f8a1b2c-4d5e-6f7a-8b9c-0d1e2f3a4b5c</Id>
+  <Version>1.0.0</Version>
+  <ProviderName>LiveSlide</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+
+  <DisplayName DefaultValue="LiveSlide — Live Survey Results"/>
+  <Description DefaultValue="Show real-time survey results directly in your PowerPoint slide, updating live as your audience responds."/>
+
+  <IconUrl DefaultValue="https://placehold.co/32x32/06080f/00d4ff?text=LS"/>
+  <HighResolutionIconUrl DefaultValue="https://placehold.co/64x64/06080f/00d4ff?text=LS"/>
+  <SupportUrl DefaultValue="https://YOURUSERNAME.github.io/liveslide"/>
+
+  <Hosts>
+    <Host Name="Presentation"/>
+  </Hosts>
+
+  <DefaultSettings>
+    <!-- This is the page that renders INSIDE your PowerPoint slide -->
+    <SourceLocation DefaultValue="https://YOURUSERNAME.github.io/liveslide/presenter.html"/>
+  </DefaultSettings>
+
+  <!-- Restricted is fine — we only need to load a web page -->
+  <Permissions>Restricted</Permissions>
+
+</OfficeApp>
