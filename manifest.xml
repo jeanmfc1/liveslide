@@ -1,13 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  LiveSlide — Office Add-in Manifest
-  ===================================
-  Before using this file, replace every instance of YOURUSERNAME
-  with your actual GitHub username.
-
-  Then in PowerPoint:
-    Insert → Get Add-ins → Upload My Add-in → choose this file
--->
 <OfficeApp
   xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
