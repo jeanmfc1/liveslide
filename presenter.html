@@ -1,417 +1,208 @@
+Presenter · HTML
+Copy
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LiveSlide — Presenter</title>
-
-<!-- ════════════════════════════════════════════════
-     ⚠️  CONFIGURATION — Edit these two things:
-     ════════════════════════════════════════════════ -->
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<title>LiveSlide</title>
+ 
 <script>
-  // 1. Paste your Firebase config (from Firebase Console → Project Settings → Your apps)
-  const FIREBASE_CONFIG = {
-    apiKey:            "AIzaSyD9I_x5YMYGyjY6-G_syBfQKIqdNZ2yWCo",
-    authDomain:        "aaps-survey.firebaseapp.com",
-    databaseURL:       "https://aaps-survey-default-rtdb.firebaseio.com",
-    projectId:         "aaps-survey",
-    storageBucket:     "aaps-survey.appspot.com",
-    messagingSenderId: "859652803820",
-    appId:             "1:859652803820:web:75b5e37d7035a70c3ae9c9"
-  };
-
-  // 2. Set your survey URL (GitHub Pages URL + /survey.html)
-  const SURVEY_URL = "https://reliable-clafoutis-582246.netlify.app/survey.html";
-
-  // 3. Define your survey questions (keep this identical in survey.html)
-  const QUESTIONS = [
-    {
-      id: "q1",
-      text: "How would you rate today's session?",
-      options: ["⭐ Poor", "⭐⭐ Fair", "⭐⭐⭐ Good", "⭐⭐⭐⭐ Great", "⭐⭐⭐⭐⭐ Excellent"]
-    },
-    {
-      id: "q2",
-      text: "Which topic was most valuable?",
-      options: ["Strategy & Roadmap", "Technology & Tools", "Data & Analytics", "Team Collaboration"]
-    },
-    {
-      id: "q3",
-      text: "Would you recommend this event?",
-      options: ["Definitely yes", "Probably yes", "Not sure", "Probably not"]
-    }
-  ];
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyD9I_x5YMYGyjY6-G_syBfQKIqdNZ2yWCo",
+  authDomain:        "aaps-survey.firebaseapp.com",
+  databaseURL:       "https://aaps-survey-default-rtdb.firebaseio.com",
+  projectId:         "aaps-survey",
+  storageBucket:     "aaps-survey.firebasestorage.app",
+  messagingSenderId: "859652803820",
+  appId:             "1:859652803820:web:75b5e37d7035a70c3ae9c9"
+};
+ 
+const SURVEY_URL = "https://reliable-clafoutis-582246.netlify.app/survey.html";
+ 
+const QUESTIONS = [
+  { id:"q1", text:"How would you rate today's session?",
+    options:["⭐ Poor","⭐⭐ Fair","⭐⭐⭐ Good","⭐⭐⭐⭐ Great","⭐⭐⭐⭐⭐ Excellent"] },
+  { id:"q2", text:"Which topic was most valuable?",
+    options:["Strategy & Roadmap","Technology & Tools","Data & Analytics","Team Collaboration"] },
+  { id:"q3", text:"Would you recommend this event?",
+    options:["Definitely yes","Probably yes","Not sure","Probably not"] }
+];
 </script>
-
-<!-- Firebase SDKs -->
+ 
+<!-- Office.js — required for Content Add-ins -->
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+ 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<!-- QR Code -->
+ 
+<!-- QRCode -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
+ 
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
+ 
 <style>
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-
-:root {
-  --bg:      #06080f;
-  --card:    #0c1525;
-  --border:  #1a2840;
-  --accent:  #00d4ff;
-  --accent2: #7c6fea;
-  --green:   #3ddc97;
-  --amber:   #f59e0b;
-  --rose:    #f43f5e;
-  --text:    #e8f0fe;
-  --muted:   #3a5570;
-  --light:   #7a9ab5;
-  --mono: 'JetBrains Mono', monospace;
-  --disp: 'Syne', sans-serif;
-  --body: 'DM Sans', sans-serif;
-}
-
-html, body {
-  width:100%; height:100%; overflow:hidden;
-  font-family:var(--body);
-  background:var(--bg);
-  color:var(--text);
-}
-
-body {
-  display:flex; flex-direction:column;
-  background: radial-gradient(ellipse 120% 80% at 50% -10%, #0c1e38 0%, var(--bg) 65%);
-  position:relative;
-}
-
-/* Grid lines */
-body::before {
-  content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background-image:
-    linear-gradient(rgba(0,212,255,.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,212,255,.018) 1px, transparent 1px);
-  background-size:56px 56px;
-}
-
-/* ── HEADER ── */
-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 18px 8px;
-  border-bottom:1px solid var(--border);
-  position:relative; z-index:1; flex-shrink:0;
-}
-
-.header-left { display:flex; align-items:center; gap:10px; }
-
-.live-badge {
-  display:flex; align-items:center; gap:6px;
-  font-family:var(--mono); font-size:11px; color:var(--accent);
-  background:rgba(0,212,255,.08); padding:3px 9px;
-  border-radius:20px; border:1px solid rgba(0,212,255,.2);
-}
-
-.live-dot {
-  width:6px; height:6px; border-radius:50%; background:var(--accent);
-  animation:pls 1.8s ease-in-out infinite;
-}
-
-@keyframes pls {
-  0%,100%{ opacity:1; box-shadow:0 0 0 0 rgba(0,212,255,.5); }
-  50%{ opacity:.5; box-shadow:0 0 0 5px rgba(0,212,255,0); }
-}
-
-.q-indicator {
-  font-family:var(--mono); font-size:11px; color:var(--muted);
-  letter-spacing:1.5px; text-transform:uppercase;
-}
-
-.nav-btns { display:flex; gap:6px; }
-
-.nav-btn {
-  padding:5px 12px; border:1px solid var(--border);
-  background:transparent; color:var(--muted); border-radius:6px;
-  font-size:11px; cursor:pointer; font-family:var(--body); transition:all .15s;
-}
-.nav-btn:hover { border-color:var(--accent); color:var(--accent); }
-
-/* ── MAIN ── */
-main {
-  flex:1; display:flex; flex-direction:column;
-  padding:14px 20px 10px;
-  position:relative; z-index:1; overflow:hidden;
-  min-height:0;
-}
-
-.q-text {
-  font-family:var(--disp);
-  font-size:clamp(15px, 2.8vw, 30px);
-  font-weight:700; color:#fff;
-  line-height:1.25;
-  margin-bottom:18px;
-  max-width:88%;
-}
-
-/* ── CHART ── */
-.chart {
-  flex:1; display:flex; flex-direction:column;
-  gap:10px; justify-content:center; min-height:0;
-}
-
-.bar-row {
-  display:grid;
-  grid-template-columns: minmax(100px, 22%) 1fr 52px 40px;
-  align-items:center; gap:10px;
-}
-
-.bar-label {
-  font-size:clamp(11px, 1.4vw, 14px);
-  color:var(--light); text-align:right;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-
-.bar-track {
-  height:clamp(28px, 4.5vh, 42px);
-  background:rgba(255,255,255,.04);
-  border-radius:5px; overflow:hidden;
-}
-
-.bar-fill {
-  height:100%; width:0; border-radius:5px;
-  transition:width .65s cubic-bezier(.34,1.4,.64,1);
-  position:relative; overflow:hidden;
-}
-
-.bar-fill::after {
-  content:''; position:absolute; top:0; left:0; right:0; height:50%;
-  background:rgba(255,255,255,.07); border-radius:5px 5px 0 0;
-}
-
-.bar-pct {
-  font-family:var(--mono); font-size:clamp(11px,1.3vw,13px);
-  font-weight:600; color:var(--accent); text-align:right;
-}
-
-.bar-cnt {
-  font-family:var(--mono); font-size:clamp(9px,1.1vw,11px);
-  color:var(--muted); text-align:right;
-}
-
-/* ── FOOTER ── */
-footer {
-  display:flex; align-items:flex-end; justify-content:space-between;
-  padding-top:10px;
-  border-top:1px solid rgba(255,255,255,.05);
-  position:relative; z-index:1; flex-shrink:0;
-}
-
-.qr-block { display:flex; align-items:center; gap:12px; }
-
-#qr-wrap {
-  width:clamp(64px,9vw,88px); height:clamp(64px,9vw,88px);
-  background:#fff; border-radius:8px; padding:4px;
-  display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;
-}
-#qr-wrap canvas, #qr-wrap img { max-width:100%; max-height:100%; }
-
-.qr-meta { font-size:clamp(10px,1.2vw,13px); color:var(--light); line-height:1.7; }
-.qr-meta strong { font-family:var(--disp); font-size:clamp(12px,1.5vw,15px); color:#fff; display:block; }
-
-.total-block { text-align:right; }
-
-.big-number {
-  font-family:var(--mono); font-size:clamp(32px,6vw,56px);
-  font-weight:600; color:var(--accent); line-height:1;
-}
-.big-label {
-  font-size:clamp(9px,1vw,11px); color:var(--muted);
-  letter-spacing:2px; text-transform:uppercase; margin-top:3px;
-}
-.updated {
-  font-size:10px; color:var(--muted); font-family:var(--mono); margin-top:4px;
-}
-
-/* ── ERROR STATE ── */
-.config-error {
-  position:fixed; inset:0; background:var(--bg); display:flex;
-  flex-direction:column; align-items:center; justify-content:center;
-  text-align:center; padding:32px; z-index:999;
-}
-.config-error h2 { font-family:var(--disp); color:var(--amber); margin-bottom:12px; }
-.config-error p { color:var(--light); font-size:14px; line-height:1.8; max-width:400px; }
-.config-error code { color:var(--accent); font-family:var(--mono); font-size:12px; background:var(--card); padding:2px 6px; border-radius:4px; }
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:#06080f;color:#e8f0fe;}
+body{display:flex;flex-direction:column;}
+ 
+header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid #1a2840;flex-shrink:0;}
+.live-badge{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#00d4ff;background:rgba(0,212,255,.08);padding:3px 8px;border-radius:20px;border:1px solid rgba(0,212,255,.2);}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#00d4ff;animation:pls 1.8s ease-in-out infinite;}
+@keyframes pls{0%,100%{opacity:1;}50%{opacity:.3;}}
+.q-ind{font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a5570;letter-spacing:1px;}
+.nav-btns{display:flex;gap:5px;}
+.nav-btn{padding:4px 10px;border:1px solid #1a2840;background:transparent;color:#3a5570;border-radius:5px;font-size:11px;cursor:pointer;transition:all .15s;}
+.nav-btn:hover{border-color:#00d4ff;color:#00d4ff;}
+ 
+main{flex:1;display:flex;flex-direction:column;padding:12px 16px 8px;min-height:0;}
+.q-text{font-family:'Syne',sans-serif;font-size:clamp(13px,2.5vw,22px);font-weight:700;color:#fff;margin-bottom:14px;line-height:1.3;}
+.chart{flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;}
+.bar-row{display:grid;grid-template-columns:minmax(80px,20%) 1fr 48px 36px;align-items:center;gap:8px;}
+.bar-label{font-size:clamp(10px,1.3vw,13px);color:#7a9ab5;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{height:clamp(22px,3.5vh,36px);background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;width:0;border-radius:4px;transition:width .65s cubic-bezier(.34,1.4,.64,1);}
+.bar-pct{font-family:'JetBrains Mono',monospace;font-size:clamp(10px,1.2vw,12px);font-weight:600;color:#00d4ff;text-align:right;}
+.bar-cnt{font-family:'JetBrains Mono',monospace;font-size:clamp(9px,1vw,11px);color:#3a5570;text-align:right;}
+ 
+footer{display:flex;align-items:flex-end;justify-content:space-between;padding-top:8px;border-top:1px solid rgba(255,255,255,.05);flex-shrink:0;}
+.qr-block{display:flex;align-items:center;gap:10px;}
+#qr-wrap{width:clamp(56px,8vw,72px);height:clamp(56px,8vw,72px);background:#fff;border-radius:7px;padding:3px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+#qr-wrap canvas,#qr-wrap img{max-width:100%;max-height:100%;}
+.qr-meta{font-size:clamp(9px,1.1vw,12px);color:#7a9ab5;line-height:1.6;}
+.qr-meta strong{font-family:'Syne',sans-serif;font-size:clamp(11px,1.3vw,14px);color:#fff;display:block;}
+.total-block{text-align:right;}
+.big-num{font-family:'JetBrains Mono',monospace;font-size:clamp(28px,5vw,48px);font-weight:600;color:#00d4ff;line-height:1;}
+.big-lbl{font-size:clamp(8px,.9vw,10px);color:#3a5570;letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+ 
+.status{font-size:11px;color:#3a5570;font-family:'JetBrains Mono',monospace;margin-top:2px;}
+ 
 </style>
 </head>
 <body>
-
+ 
 <header>
-  <div class="header-left">
+  <div style="display:flex;align-items:center;gap:8px;">
     <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-    <div class="q-indicator" id="q-ind">Q 1 / 1</div>
+    <div class="q-ind" id="q-ind">Q 1 / 1</div>
   </div>
   <div class="nav-btns">
     <button class="nav-btn" onclick="prevQ()">◄</button>
     <button class="nav-btn" onclick="nextQ()">►</button>
   </div>
 </header>
-
+ 
 <main>
   <div class="q-text" id="q-text">Loading…</div>
   <div class="chart" id="chart"></div>
 </main>
-
+ 
 <footer>
   <div class="qr-block">
     <div id="qr-wrap"></div>
-    <div class="qr-meta">
-      <strong>Scan to respond</strong>
-      survey.html on your device<br>or via QR code
-    </div>
+    <div class="qr-meta"><strong>Scan to respond</strong>or via QR code</div>
   </div>
   <div class="total-block">
-    <div class="big-number" id="total">0</div>
-    <div class="big-label">Responses</div>
-    <div class="updated" id="updated">—</div>
+    <div class="big-num" id="total">0</div>
+    <div class="big-lbl">Responses</div>
+    <div class="status" id="status">connecting…</div>
   </div>
 </footer>
-
+ 
 <script>
-var COLORS = [
+var COLORS=[
   "linear-gradient(90deg,#0369a1,#00d4ff)",
   "linear-gradient(90deg,#4c1d95,#7c6fea)",
   "linear-gradient(90deg,#065f46,#3ddc97)",
   "linear-gradient(90deg,#78350f,#f59e0b)",
   "linear-gradient(90deg,#881337,#f43f5e)"
 ];
-
-/* ─── Guards ─── */
-const needsConfig = FIREBASE_CONFIG.apiKey.startsWith("PASTE");
-if (needsConfig) {
-  document.body.innerHTML = `
-    <div class="config-error">
-      <h2>⚙ Setup needed</h2>
-      <p>Open <code>presenter.html</code> and paste your Firebase config at the top.<br>
-      See <code>README.md</code> for instructions.</p>
-    </div>`;
+ 
+var R={}, pIdx=0;
+ 
+function qCounts(id){return R[id]||{};}
+function qTotal(id){return Object.values(qCounts(id)).reduce(function(a,b){return a+b;},0);}
+function totalResp(){return Math.max.apply(null,[0].concat(QUESTIONS.map(function(q){return qTotal(q.id);})));}
+ 
+function renderChart(){
+  try{
+    var q=QUESTIONS[pIdx];
+    document.getElementById("q-ind").textContent="Q "+(pIdx+1)+" / "+QUESTIONS.length;
+    document.getElementById("q-text").textContent=q.text;
+    var counts=qCounts(q.id), total=qTotal(q.id);
+    var maxC=Math.max.apply(null,[1].concat(q.options.map(function(_,i){return counts[i]||0;})));
+    var chart=document.getElementById("chart");
+    chart.innerHTML=q.options.map(function(opt,i){
+      return '<div class="bar-row">'+
+        '<div class="bar-label">'+opt+'</div>'+
+        '<div class="bar-track"><div class="bar-fill" id="bf'+i+'" style="background:'+COLORS[i%5]+';width:0"></div></div>'+
+        '<div class="bar-pct" id="bp'+i+'">0%</div>'+
+        '<div class="bar-cnt" id="bc'+i+'">0</div>'+
+      '</div>';
+    }).join('');
+    setTimeout(function(){
+      q.options.forEach(function(_,i){
+        var c=counts[i]||0;
+        var pct=total>0?Math.round(c/total*100):0;
+        var w=(c/maxC*100).toFixed(1);
+        var bf=document.getElementById("bf"+i);
+        if(bf)bf.style.width=w+"%";
+        var bp=document.getElementById("bp"+i);
+        if(bp)bp.textContent=pct+"%";
+        var bc=document.getElementById("bc"+i);
+        if(bc)bc.textContent=c;
+      });
+    },50);
+    document.getElementById("total").textContent=totalResp();
+  }catch(e){console.error("renderChart:",e);}
 }
-
-/* ─── Firebase ─── */
-let R = {};   // { q1: { 0: count, 1: count, … }, … }
-let pIdx = 0; // which question is shown
-
-if (!needsConfig) {
-  try {
+ 
+function prevQ(){if(pIdx>0){pIdx--;renderChart();}}
+function nextQ(){if(pIdx<QUESTIONS.length-1){pIdx++;renderChart();}}
+ 
+function makeQR(){
+  try{
+    var box=document.getElementById("qr-wrap");
+    box.innerHTML="";
+    new QRCode(box,{text:SURVEY_URL,width:64,height:64,colorDark:"#000",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.M});
+  }catch(e){console.error("QR:",e);}
+}
+ 
+function initFirebase(){
+  try{
     firebase.initializeApp(FIREBASE_CONFIG);
-    const db = firebase.database();
-
-    db.ref("responses").on("value", snap => {
-      try {
-        R = snap.val() || {};
+    var db=firebase.database();
+    document.getElementById("status").textContent="connected";
+    db.ref("responses").on("value",function(snap){
+      try{
+        R=snap.val()||{};
         renderChart();
-        updateFooter();
-      } catch(e) { console.error(e); }
+        document.getElementById("status").textContent="updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+      }catch(e){console.error("snap:",e);}
+    },function(err){
+      document.getElementById("status").textContent="error: "+err.message;
     });
-
+  }catch(e){
+    document.getElementById("status").textContent="firebase error";
+    console.error("firebase:",e);
+  }
+}
+ 
+// Wait for Office.js to be ready, then init
+Office.onReady(function(info){
+  try{
     makeQR();
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") nextQ();
-      if (e.key === "ArrowLeft"  || e.key === "ArrowUp")  prevQ();
-    });
+    initFirebase();
     renderChart();
-  } catch(e) {
-    console.error('Firebase error:', e);
-  }
-}
-
-  // Real-time listener — fires instantly on any change
-  db.ref("responses").on("value", snap => {
-    R = snap.val() || {};
-    renderChart();
-    updateFooter();
-  });
-
-  // QR code
-  makeQR();
-
-  // Keyboard nav
-  document.addEventListener("keydown", e => {
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") nextQ();
-    if (e.key === "ArrowLeft"  || e.key === "ArrowUp")  prevQ();
-  });
-
-  // Initial render
-  renderChart();
-}
-
-/* ─── Helpers ─── */
-
-function qCounts(id) { return R[id] || {}; }
-function qTotal(id)  { return Object.values(qCounts(id)).reduce((a,b)=>a+b, 0); }
-function totalResp() { return Math.max(0, ...QUESTIONS.map(q => qTotal(q.id))); }
-
-/* ─── Render chart ─── */
-function renderChart() {
-  const q = QUESTIONS[pIdx];
-  document.getElementById("q-ind").textContent = `Q ${pIdx+1} / ${QUESTIONS.length}`;
-  document.getElementById("q-text").textContent = q.text;
-
-  const counts = qCounts(q.id);
-  const total  = qTotal(q.id);
-  const maxC   = Math.max(...q.options.map((_,i) => counts[i]||0), 1);
-
-  // Build rows with width=0 first, animate after paint
-  const chart = document.getElementById("chart");
-  chart.innerHTML = q.options.map((opt, i) => `
-    <div class="bar-row">
-      <div class="bar-label">${opt}</div>
-      <div class="bar-track">
-        <div class="bar-fill" id="bf${i}" style="background:${COLORS[i%5]};width:0"></div>
-      </div>
-      <div class="bar-pct" id="bp${i}">0%</div>
-      <div class="bar-cnt" id="bc${i}">0</div>
-    </div>`).join("");
-
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    q.options.forEach((_, i) => {
-      const c   = counts[i] || 0;
-      const pct = total > 0 ? Math.round(c / total * 100) : 0;
-      const w   = (c / maxC * 100).toFixed(1);
-      const bf  = document.getElementById("bf"+i);
-      if (bf) bf.style.width = w + "%";
-      const bp  = document.getElementById("bp"+i);
-      if (bp) bp.textContent = pct + "%";
-      const bc  = document.getElementById("bc"+i);
-      if (bc) bc.textContent = c;
+    document.addEventListener("keydown",function(e){
+      if(e.key==="ArrowRight"||e.key==="ArrowDown")nextQ();
+      if(e.key==="ArrowLeft"||e.key==="ArrowUp")prevQ();
     });
-  }));
-}
-
-function updateFooter() {
-  document.getElementById("total").textContent = totalResp();
-  document.getElementById("updated").textContent =
-    "updated " + new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
-}
-
-/* ─── Navigation ─── */
-function prevQ() { if (pIdx > 0) { pIdx--; renderChart(); } }
-function nextQ() { if (pIdx < QUESTIONS.length-1) { pIdx++; renderChart(); } }
-
-/* ─── QR Code ─── */
-function makeQR() {
-  const box = document.getElementById("qr-wrap");
-  box.innerHTML = "";
-  const size = Math.min(80, box.offsetWidth - 8);
-  try {
-    new QRCode(box, {
-      text: SURVEY_URL,
-      width: size, height: size,
-      colorDark: "#000", colorLight: "#fff",
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  } catch(e) {
-    box.innerHTML = `<div style="font-size:9px;color:#3a5570;text-align:center;padding:6px">Set SURVEY_URL<br>in config</div>`;
-  }
-}
+  }catch(e){console.error("onReady:",e);}
+});
 </script>
 </body>
 </html>
