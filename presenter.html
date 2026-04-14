@@ -300,8 +300,28 @@ let R = {};   // { q1: { 0: count, 1: count, … }, … }
 let pIdx = 0; // which question is shown
 
 if (!needsConfig) {
-  firebase.initializeApp(FIREBASE_CONFIG);
-  const db = firebase.database();
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.database();
+
+    db.ref("responses").on("value", snap => {
+      try {
+        R = snap.val() || {};
+        renderChart();
+        updateFooter();
+      } catch(e) { console.error(e); }
+    });
+
+    makeQR();
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") nextQ();
+      if (e.key === "ArrowLeft"  || e.key === "ArrowUp")  prevQ();
+    });
+    renderChart();
+  } catch(e) {
+    console.error('Firebase error:', e);
+  }
+}
 
   // Real-time listener — fires instantly on any change
   db.ref("responses").on("value", snap => {
