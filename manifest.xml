@@ -24,7 +24,7 @@
 
   <IconUrl DefaultValue="https://placehold.co/32x32/06080f/00d4ff?text=LS"/>
   <HighResolutionIconUrl DefaultValue="https://placehold.co/64x64/06080f/00d4ff?text=LS"/>
-  <SupportUrl DefaultValue="https://YOURUSERNAME.github.io/liveslide"/>
+  <SupportUrl DefaultValue=https://liveslide-cvz.pages.dev/>
 
   <Hosts>
     <Host Name="Presentation"/>
@@ -32,7 +32,7 @@
 
   <DefaultSettings>
     <!-- This is the page that renders INSIDE your PowerPoint slide -->
-    <SourceLocation DefaultValue="https://YOURUSERNAME.github.io/liveslide/presenter.html"/>
+    <SourceLocation DefaultValue="https://liveslide-cvz.pages.dev/presenter.html"/>
   </DefaultSettings>
 
   <!-- Restricted is fine — we only need to load a web page -->
