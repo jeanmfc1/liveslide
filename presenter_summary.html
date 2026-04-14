@@ -33,80 +33,79 @@ const COLORS = [
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html, body {
   width:100%; height:100vh; overflow:hidden;
-  font-family:'DM Sans',sans-serif;
+  font-family:'Century Gothic',Futura,'Trebuchet MS',sans-serif;
   background:#ffffff; color:#0f172a;
   display:flex; flex-direction:column;
 }
 
-/* TOP BAR */
 .topbar {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:6px 12px; flex-shrink:0;
+  display:flex; align-items:center;
+  padding:5px 10px; flex-shrink:0;
 }
 .live-badge {
   display:flex; align-items:center; gap:5px;
-  font-family:'JetBrains Mono',monospace; font-size:10px; color:#0e7490;
+  font-size:10px; color:#0e7490;
   background:rgba(14,116,144,.08); padding:2px 8px; border-radius:20px;
   border:1px solid rgba(14,116,144,.25);
 }
 .live-dot { width:5px; height:5px; border-radius:50%; background:#0e7490; animation:pls 1.8s ease-in-out infinite; }
 @keyframes pls { 0%,100%{opacity:1;} 50%{opacity:.3;} }
 
-/* GRID — 2 columns x 3 rows */
 .grid {
   flex:1;
   display:grid;
   grid-template-columns:1fr 1fr;
   grid-template-rows:1fr 1fr 1fr;
-  gap:8px;
-  padding:4px 10px 10px;
+  gap:6px;
+  padding:4px 8px 8px;
   min-height:0;
 }
 
-/* EACH CARD */
 .card {
   display:flex; flex-direction:column;
   background:#f8fafc; border-radius:8px;
-  padding:8px 10px; overflow:hidden;
-  min-height:0;
+  padding:8px 10px; overflow:hidden; min-height:0;
 }
+
 .card-title {
-  font-family:'Syne',sans-serif;
-  font-size:clamp(9px,1.1vw,12px);
+  font-size:clamp(11px,1.3vw,14px);
   font-weight:700; color:#0f172a;
-  line-height:1.2; margin-bottom:6px;
-  flex-shrink:0;
+  line-height:1.2; margin-bottom:6px; flex-shrink:0;
 }
+
 .bars {
   flex:1; display:flex; flex-direction:column;
   justify-content:space-evenly; min-height:0;
 }
+
 .bar-row {
   display:grid;
-  grid-template-columns:52px 1fr 34px;
-  align-items:center; gap:5px;
+  grid-template-columns:62px 1fr 38px;
+  align-items:center; gap:6px;
 }
+
 .bar-label {
-  font-size:clamp(8px,0.9vw,11px);
-  color:#334155; text-align:right; font-weight:500;
+  font-size:clamp(10px,1.1vw,13px);
+  color:#334155; text-align:right; font-weight:600;
 }
+
 .bar-track {
-  height:clamp(10px,2.2vh,20px);
-  background:#e2e8f0; border-radius:3px; overflow:hidden;
+  height:clamp(14px,2.8vh,26px);
+  background:#e2e8f0; border-radius:4px; overflow:hidden;
 }
+
 .bar-fill {
-  height:100%; width:0; border-radius:3px;
+  height:100%; width:0; border-radius:4px;
   transition:width .7s cubic-bezier(.34,1.4,.64,1);
 }
+
 .bar-pct {
-  font-family:'JetBrains Mono',monospace;
-  font-size:clamp(8px,0.9vw,11px);
-  font-weight:600; color:#0e7490;
+  font-size:clamp(10px,1.1vw,13px);
+  font-weight:700; color:#0e7490;
 }
 </style>
 </head>
@@ -129,7 +128,6 @@ Office.onReady(function(){
 
   buildGrid();
 
-  // Listen to all responses at once
   if(db){
     db.ref("responses").on("value", function(snap){
       try { R = snap.val() || {}; renderAll(); } catch(e){}
