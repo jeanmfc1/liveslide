@@ -37,81 +37,139 @@ const COLORS = [
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;height:100vh;overflow:hidden;font-family:'DM Sans',sans-serif;color:#e8f0fe;background:transparent!important;display:flex;flex-direction:column;}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100%; height:100vh; overflow:hidden;
+  font-family:'DM Sans',sans-serif;
+  background:#ffffff;
+  color:#0f172a;
+  display:flex; flex-direction:column;
+}
 
 /* SETUP */
-#setup{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:16px;background:rgba(6,8,15,0.96);}
-#setup h2{font-family:'Syne',sans-serif;font-size:16px;color:#fff;margin-bottom:4px;}
-#setup p{font-size:11px;color:#7a9ab5;margin-bottom:14px;text-align:center;}
-.q-btn{width:100%;padding:8px 12px;margin-bottom:6px;background:rgba(255,255,255,.04);border:1px solid #1a2840;border-radius:7px;color:#e8f0fe;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:left;transition:all .15s;line-height:1.4;}
-.q-btn:hover{border-color:#00d4ff;background:rgba(0,212,255,.06);color:#fff;}
+#setup {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:100%; padding:16px; background:#ffffff;
+}
+#setup h2 { font-family:'Syne',sans-serif; font-size:16px; color:#0f172a; margin-bottom:4px; }
+#setup p  { font-size:11px; color:#64748b; margin-bottom:14px; text-align:center; }
+.q-btn {
+  width:100%; padding:9px 12px; margin-bottom:6px;
+  background:#f8fafc; border:1px solid #e2e8f0;
+  border-radius:8px; color:#334155; font-size:12px;
+  font-family:'DM Sans',sans-serif; cursor:pointer;
+  text-align:left; transition:all .15s; line-height:1.4;
+}
+.q-btn:hover { border-color:#0e7490; background:#ecfeff; color:#0e7490; }
 
 /* PRESENTER */
-#presenter{display:none;flex-direction:column;height:100%;}
+#presenter { display:none; flex-direction:column; height:100%; background:#ffffff; }
 
-header{display:flex;align-items:center;justify-content:space-between;padding:5px 12px;flex-shrink:0;background:transparent;}
-.live-badge{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#00d4ff;background:rgba(0,212,255,.08);padding:2px 7px;border-radius:20px;border:1px solid rgba(0,212,255,.2);}
-.live-dot{width:5px;height:5px;border-radius:50%;background:#00d4ff;animation:pls 1.8s ease-in-out infinite;}
-@keyframes pls{0%,100%{opacity:1;}50%{opacity:.3;}}
-.change-btn{padding:3px 8px;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.35);border-radius:5px;font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
-.change-btn:hover{border-color:#00d4ff;color:#00d4ff;}
+/* TOP BAR */
+.topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 14px 6px; flex-shrink:0;
+  border-bottom:1px solid #f1f5f9;
+}
+.live-badge {
+  display:flex; align-items:center; gap:5px;
+  font-family:'JetBrains Mono',monospace; font-size:10px; color:#0e7490;
+  background:rgba(14,116,144,.08); padding:2px 8px; border-radius:20px;
+  border:1px solid rgba(14,116,144,.25);
+}
+.live-dot { width:5px; height:5px; border-radius:50%; background:#0e7490; animation:pls 1.8s ease-in-out infinite; }
+@keyframes pls { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+.change-btn {
+  padding:3px 9px; border:1px solid #cbd5e1; background:transparent;
+  color:#94a3b8; border-radius:5px; font-size:10px; cursor:pointer;
+  font-family:'DM Sans',sans-serif; transition:all .15s;
+}
+.change-btn:hover { border-color:#0e7490; color:#0e7490; }
 
-main{flex:1;display:flex;flex-direction:column;padding:8px 14px 6px;min-height:0;background:transparent;justify-content:space-between;}
-.q-text{font-family:'Syne',sans-serif;font-size:clamp(14px,2.5vw,24px);font-weight:700;color:#fff;margin-bottom:0;line-height:1.25;flex-shrink:0;}
-.chart{display:flex;flex-direction:column;gap:clamp(6px,1.2vh,12px);flex-shrink:0;}
-.bar-row{display:grid;grid-template-columns:90px 1fr 46px;align-items:center;gap:8px;}
-.bar-label{font-size:clamp(12px,1.6vw,16px);color:#a0c0d8;text-align:right;font-weight:500;}
-.bar-track{height:clamp(36px,7vh,60px);background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden;}
-.bar-fill{height:100%;width:0;border-radius:5px;transition:width .7s cubic-bezier(.34,1.4,.64,1);position:relative;overflow:hidden;}
-.bar-fill::after{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:rgba(255,255,255,.08);border-radius:5px 5px 0 0;}
-.bar-pct{font-family:'JetBrains Mono',monospace;font-size:clamp(12px,1.4vw,15px);font-weight:600;color:#00d4ff;}
+/* QUESTION */
+.q-text {
+  font-family:'Syne',sans-serif;
+  font-size:clamp(15px,2.4vw,24px);
+  font-weight:700; color:#0f172a;
+  padding:12px 14px 10px; line-height:1.25; flex-shrink:0;
+}
 
-footer{display:flex;align-items:center;justify-content:flex-end;padding:5px 14px 8px;flex-shrink:0;background:transparent;gap:10px;}
-#qr-wrap{width:clamp(90px,13vw,120px);height:clamp(90px,13vw,120px);background:#fff;border-radius:8px;padding:5px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
-#qr-wrap canvas,#qr-wrap img{max-width:100%;max-height:100%;}
-.qr-meta{font-size:clamp(10px,1.1vw,12px);color:#7a9ab5;line-height:1.7;text-align:right;}
-.qr-meta strong{font-family:'Syne',sans-serif;font-size:clamp(12px,1.3vw,14px);color:#fff;display:block;}
+/* CHART */
+.chart {
+  display:flex; flex-direction:column;
+  gap:clamp(8px,1.5vh,14px);
+  padding:0 14px; flex-shrink:0;
+}
+.bar-row { display:grid; grid-template-columns:90px 1fr 48px; align-items:center; gap:10px; }
+.bar-label { font-size:clamp(13px,1.6vw,16px); color:#334155; text-align:right; font-weight:500; }
+.bar-track { height:clamp(34px,6.5vh,56px); background:#f1f5f9; border-radius:6px; overflow:hidden; }
+.bar-fill {
+  height:100%; width:0; border-radius:6px;
+  transition:width .7s cubic-bezier(.34,1.4,.64,1);
+  position:relative; overflow:hidden;
+}
+.bar-fill::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:50%;
+  background:rgba(255,255,255,.2); border-radius:6px 6px 0 0;
+}
+.bar-pct { font-family:'JetBrains Mono',monospace; font-size:clamp(12px,1.4vw,15px); font-weight:600; color:#0e7490; }
+
+/* FOOTER */
+.footer {
+  display:flex; align-items:center; justify-content:flex-end;
+  padding:10px 14px 10px; margin-top:auto;
+  border-top:1px solid #f1f5f9; gap:12px; flex-shrink:0;
+}
+#qr-wrap {
+  width:clamp(88px,12vw,110px); height:clamp(88px,12vw,110px);
+  background:#fff; border:1px solid #e2e8f0; border-radius:8px;
+  padding:4px; display:flex; align-items:center; justify-content:center;
+  overflow:hidden; flex-shrink:0;
+}
+#qr-wrap canvas, #qr-wrap img { max-width:100%; max-height:100%; }
+.qr-meta { font-size:clamp(10px,1.1vw,12px); color:#64748b; line-height:1.7; text-align:right; }
+.qr-meta strong { font-family:'Syne',sans-serif; font-size:clamp(12px,1.3vw,14px); color:#0f172a; display:block; }
 </style>
 </head>
 <body>
+
 <div id="setup">
   <h2>Which scenario is on this slide?</h2>
   <p>Pick once — this add-in will always show that scenario.</p>
   <div id="q-buttons"></div>
 </div>
+
 <div id="presenter">
-  <header>
+  <div class="topbar">
     <div class="live-badge"><div class="live-dot"></div>LIVE</div>
     <button class="change-btn" onclick="showSetup()">change scenario</button>
-  </header>
-  <main>
-    <div class="q-text" id="q-text"></div>
-    <div class="chart" id="chart"></div>
-  </main>
-  <footer>
+  </div>
+  <div class="q-text" id="q-text"></div>
+  <div class="chart" id="chart"></div>
+  <div class="footer">
     <div class="qr-meta"><strong>Scan to respond</strong>or via QR code</div>
     <div id="qr-wrap"></div>
-  </footer>
+  </div>
 </div>
+
 <script>
 var R={}, activeQ=null, db=null, currentListener=null;
 
 Office.onReady(function(){
-  try{firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database();}catch(e){console.error(e);}
+  try { firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); } catch(e){ console.error(e); }
   buildSetupButtons();
-  try{
+  try {
     var saved=localStorage.getItem("liveslide_question");
     if(saved) selectQuestion(saved); else showSetup();
-  }catch(e){showSetup();}
+  } catch(e){ showSetup(); }
 });
 
 function buildSetupButtons(){
   var c=document.getElementById("q-buttons");
   QUESTIONS.forEach(function(q){
     var b=document.createElement("button");
-    b.className="q-btn";b.textContent=q.text;
-    b.onclick=function(){selectQuestion(q.id);};
+    b.className="q-btn"; b.textContent=q.text;
+    b.onclick=function(){ selectQuestion(q.id); };
     c.appendChild(b);
   });
 }
@@ -122,9 +180,9 @@ function showSetup(){
 }
 
 function selectQuestion(qId){
-  try{localStorage.setItem("liveslide_question",qId);}catch(e){}
-  activeQ=QUESTIONS.find(function(q){return q.id===qId;});
-  if(!activeQ){showSetup();return;}
+  try { localStorage.setItem("liveslide_question",qId); } catch(e){}
+  activeQ=QUESTIONS.find(function(q){ return q.id===qId; });
+  if(!activeQ){ showSetup(); return; }
   document.getElementById("setup").style.display="none";
   document.getElementById("presenter").style.display="flex";
   document.getElementById("q-text").textContent=activeQ.text;
@@ -134,17 +192,17 @@ function selectQuestion(qId){
   if(db){
     currentListener=activeQ.id;
     db.ref("responses/"+activeQ.id).on("value",function(snap){
-      try{R[activeQ.id]=snap.val()||{};renderChart();}catch(e){}
-    },function(err){console.error(err);});
+      try { R[activeQ.id]=snap.val()||{}; renderChart(); } catch(e){}
+    },function(err){ console.error(err); });
   }
 }
 
 function renderChart(){
   if(!activeQ) return;
-  try{
+  try {
     var counts=R[activeQ.id]||{};
-    var total=OPTIONS.reduce(function(a,_,i){return a+(counts[i]||0);},0);
-    var maxC=Math.max.apply(null,[1].concat(OPTIONS.map(function(_,i){return counts[i]||0;})));
+    var total=OPTIONS.reduce(function(a,_,i){ return a+(counts[i]||0); },0);
+    var maxC=Math.max.apply(null,[1].concat(OPTIONS.map(function(_,i){ return counts[i]||0; })));
     var chart=document.getElementById("chart");
     chart.innerHTML=OPTIONS.map(function(opt,i){
       return '<div class="bar-row">'+
@@ -156,20 +214,19 @@ function renderChart(){
     setTimeout(function(){
       OPTIONS.forEach(function(_,i){
         var c=counts[i]||0,pct=total>0?Math.round(c/total*100):0,w=(c/maxC*100).toFixed(1);
-        var bf=document.getElementById("bf"+i);if(bf)bf.style.width=w+"%";
-        var bp=document.getElementById("bp"+i);if(bp)bp.textContent=pct+"%";
+        var bf=document.getElementById("bf"+i); if(bf) bf.style.width=w+"%";
+        var bp=document.getElementById("bp"+i); if(bp) bp.textContent=pct+"%";
       });
     },50);
-  }catch(e){console.error(e);}
+  } catch(e){ console.error(e); }
 }
 
 function makeQR(qId){
-  try{
-    var box=document.getElementById("qr-wrap");box.innerHTML="";
-    var sz=Math.min(110,box.offsetWidth-10)||100;
-    var url=SURVEY_BASE+"?s="+qId;
-    new QRCode(box,{text:url,width:sz,height:sz,colorDark:"#000",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.M});
-  }catch(e){console.error(e);}
+  try {
+    var box=document.getElementById("qr-wrap"); box.innerHTML="";
+    var sz=Math.min(100,box.offsetWidth-8)||92;
+    new QRCode(box,{text:SURVEY_BASE+"?s="+qId,width:sz,height:sz,colorDark:"#000",colorLight:"#fff",correctLevel:QRCode.CorrectLevel.M});
+  } catch(e){ console.error(e); }
 }
 </script>
 </body>
