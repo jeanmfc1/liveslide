@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="X-UA-Compatible" content="IE=Edge">
 <title>LiveSlide</title>
-
+ 
 <script>
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyD9I_x5YMYGyjY6-G_syBfQKIqdNZ2yWCo",
@@ -16,9 +16,9 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "859652803820",
   appId:             "1:859652803820:web:75b5e37d7035a70c3ae9c9"
 };
-
+ 
 const SURVEY_URL = "https://reliable-clafoutis-582246.netlify.app/survey.html";
-
+ 
 const QUESTIONS = [
   { id:"s1", text:"Sponsor report formats need manual reformatting from LIMS" },
   { id:"s2", text:"QC passes but trends shift after reagent lot changes" },
@@ -27,32 +27,32 @@ const QUESTIONS = [
   { id:"s5", text:"Missed TAT due to double-booked instrument" },
   { id:"s6", text:"Long separation limits sample output" }
 ];
-
+ 
 const OPTIONS = ["AI", "Coding", "Automation"];
-
+ 
 const COLORS = [
   "linear-gradient(90deg,#0369a1,#00d4ff)",
   "linear-gradient(90deg,#4c1d95,#7c6fea)",
   "linear-gradient(90deg,#065f46,#3ddc97)"
 ];
 </script>
-
+ 
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
+ 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:transparent;color:#e8f0fe;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:transparent !important;color:#e8f0fe;}
 body{display:flex;flex-direction:column;}
-
+ 
 /* ── SETUP SCREEN ── */
 #setup{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   height:100%;padding:24px;
-  background:rgba(6,8,15,0.95);
+  background:rgba(6,8,15,0.92);
 }
 #setup h2{font-family:'Syne',sans-serif;font-size:18px;color:#fff;margin-bottom:6px;}
 #setup p{font-size:12px;color:#7a9ab5;margin-bottom:20px;text-align:center;}
@@ -63,14 +63,14 @@ body{display:flex;flex-direction:column;}
   cursor:pointer;text-align:left;transition:all .15s;line-height:1.4;
 }
 .q-btn:hover{border-color:#00d4ff;background:rgba(0,212,255,.06);color:#fff;}
-
+ 
 /* ── PRESENTER SCREEN ── */
 #presenter{display:none;flex-direction:column;height:100%;}
-
+ 
 header{
   display:flex;align-items:center;justify-content:space-between;
   padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.07);
-  flex-shrink:0;background:rgba(6,8,15,0.6);
+  flex-shrink:0;background:transparent;
 }
 .live-badge{
   display:flex;align-items:center;gap:5px;
@@ -86,7 +86,7 @@ header{
   font-family:'DM Sans',sans-serif;transition:all .15s;
 }
 .change-btn:hover{border-color:#00d4ff;color:#00d4ff;}
-
+ 
 main{flex:1;display:flex;flex-direction:column;padding:12px 16px 8px;min-height:0;}
 .q-text{
   font-family:'Syne',sans-serif;
@@ -100,11 +100,11 @@ main{flex:1;display:flex;flex-direction:column;padding:12px 16px 8px;min-height:
 .bar-fill{height:100%;width:0;border-radius:5px;transition:width .7s cubic-bezier(.34,1.4,.64,1);position:relative;overflow:hidden;}
 .bar-fill::after{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:rgba(255,255,255,.07);border-radius:5px 5px 0 0;}
 .bar-pct{font-family:'JetBrains Mono',monospace;font-size:clamp(11px,1.3vw,13px);font-weight:600;color:#00d4ff;}
-
+ 
 footer{
   display:flex;align-items:center;justify-content:flex-end;
   padding:8px 16px;border-top:1px solid rgba(255,255,255,.05);
-  flex-shrink:0;background:rgba(6,8,15,0.4);gap:12px;
+  flex-shrink:0;background:transparent;gap:12px;
 }
 #qr-wrap{
   width:clamp(52px,7vw,68px);height:clamp(52px,7vw,68px);
@@ -117,14 +117,14 @@ footer{
 </style>
 </head>
 <body>
-
+ 
 <!-- SETUP SCREEN -->
 <div id="setup">
   <h2>Which scenario is on this slide?</h2>
   <p>Pick once — this add-in will always show that scenario.</p>
   <div id="q-buttons"></div>
 </div>
-
+ 
 <!-- PRESENTER SCREEN -->
 <div id="presenter">
   <header>
@@ -140,20 +140,20 @@ footer{
     <div id="qr-wrap"></div>
   </footer>
 </div>
-
+ 
 <script>
 var R = {}, activeQ = null, db = null, currentListener = null;
-
+ 
 // ── Office ready ──
 Office.onReady(function(){
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.database();
   } catch(e){ console.error("Firebase init:", e); }
-
+ 
   makeQR();
   buildSetupButtons();
-
+ 
   // Check if a question was previously saved for this instance
   try {
     var saved = localStorage.getItem("liveslide_question");
@@ -166,7 +166,7 @@ Office.onReady(function(){
     showSetup();
   }
 });
-
+ 
 // ── Setup ──
 function buildSetupButtons(){
   var container = document.getElementById("q-buttons");
@@ -178,29 +178,29 @@ function buildSetupButtons(){
     container.appendChild(btn);
   });
 }
-
+ 
 function showSetup(){
   document.getElementById("setup").style.display = "flex";
   document.getElementById("presenter").style.display = "none";
 }
-
+ 
 function selectQuestion(qId){
   try { localStorage.setItem("liveslide_question", qId); } catch(e){}
   activeQ = QUESTIONS.find(function(q){ return q.id === qId; });
   if (!activeQ) { showSetup(); return; }
-
+ 
   document.getElementById("setup").style.display = "none";
   document.getElementById("presenter").style.display = "flex";
   document.getElementById("q-text").textContent = activeQ.text;
-
+ 
   // Detach previous listener
   if (currentListener && db) {
     db.ref("responses/" + currentListener).off();
   }
-
+ 
   // Render with current data
   renderChart();
-
+ 
   // Listen for real-time updates
   if (db) {
     currentListener = activeQ.id;
@@ -212,7 +212,7 @@ function selectQuestion(qId){
     }, function(err){ console.error("db error:", err); });
   }
 }
-
+ 
 // ── Chart ──
 function renderChart(){
   if (!activeQ) return;
@@ -220,7 +220,7 @@ function renderChart(){
     var counts = R[activeQ.id] || {};
     var total = OPTIONS.reduce(function(a,_,i){ return a + (counts[i]||0); }, 0);
     var maxC = Math.max.apply(null, [1].concat(OPTIONS.map(function(_,i){ return counts[i]||0; })));
-
+ 
     var chart = document.getElementById("chart");
     chart.innerHTML = OPTIONS.map(function(opt, i){
       return '<div class="bar-row">' +
@@ -229,7 +229,7 @@ function renderChart(){
         '<div class="bar-pct" id="bp'+i+'">0%</div>' +
       '</div>';
     }).join('');
-
+ 
     setTimeout(function(){
       OPTIONS.forEach(function(_, i){
         var c = counts[i] || 0;
@@ -243,7 +243,7 @@ function renderChart(){
     }, 50);
   } catch(e){ console.error("renderChart:", e); }
 }
-
+ 
 // ── QR ──
 function makeQR(){
   try {
