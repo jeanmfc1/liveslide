@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Live Survey</title>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyD9I_x5YMYGyjY6-G_syBfQKIqdNZ2yWCo",
+  authDomain:        "aaps-survey.firebaseapp.com",
+  databaseURL:       "https://aaps-survey-default-rtdb.firebaseio.com",
+  projectId:         "aaps-survey",
+  storageBucket:     "aaps-survey.firebasestorage.app",
+  messagingSenderId: "859652803820",
+  appId:             "1:859652803820:web:75b5e37d7035a70c3ae9c9"
+};
+
+const QUESTIONS = [
+  { id:"s1", text:"Sponsor report formats need manual reformatting from LIMS" },
+  { id:"s2", text:"QC passes but trends shift after reagent lot changes" },
+  { id:"s3", text:"Validation summary tables built from multiple queries by hand" },
+  { id:"s4", text:"Assay fails for Analyst A but passes for Analyst B" },
+  { id:"s5", text:"Missed TAT due to double-booked instrument" },
+  { id:"s6", text:"Long separation limits sample output" }
+];
+
+const OPTIONS = ["AI", "Coding", "Automation"];
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{min-height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#0f172a;}
+body{display:flex;align-items:flex-start;justify-content:center;padding:20px;}
+
+.card{background:#fff;border-radius:20px;padding:clamp(24px,5vw,36px);max-width:460px;width:100%;box-shadow:0 20px 60px rgba(15,23,42,.1);}
+
+.progress{display:flex;gap:5px;margin-bottom:22px;}
+.prog-dot{height:4px;flex:1;border-radius:2px;background:#e2e8f0;transition:background .35s;}
+.prog-dot.done{background:#0e7490;}
+.prog-dot.active{background:#22d3ee;}
+
+.q-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;margin-bottom:8px;}
+.q-text{font-family:'Syne',sans-serif;font-size:clamp(17px,3.5vw,22px);font-weight:700;color:#0f172a;line-height:1.35;margin-bottom:20px;}
+
+.options{display:flex;flex-direction:column;gap:10px;}
+.opt{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;border:2px solid #e2e8f0;border-radius:13px;
+  background:#fff;cursor:pointer;font-size:15px;font-family:'DM Sans',sans-serif;
+  transition:all .15s;text-align:left;width:100%;font-weight:500;color:#334155;
+}
+.opt:hover{border-color:#0e7490;background:#ecfeff;color:#0e7490;}
+.opt.sel{border-color:#0e7490;background:#ecfeff;color:#0e7490;}
+.opt-letter{
+  width:28px;height:28px;border-radius:50%;
+  background:#e2e8f0;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;flex-shrink:0;font-family:'DM Sans',sans-serif;
+  transition:all .15s;
+}
+.opt.sel .opt-letter{background:#0e7490;color:#fff;}
+
+.next-btn{
+  margin-top:16px;width:100%;padding:15px;
+  background:linear-gradient(135deg,#0e7490,#22d3ee);
+  border:none;border-radius:13px;color:#fff;
+  font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;
+  cursor:pointer;transition:opacity .15s;display:none;
+}
+.next-btn.vis{display:block;}
+.next-btn:hover{opacity:.9;}
+
+.thanks{text-align:center;display:none;padding:10px 0;}
+.thanks.vis{display:block;}
+.thanks-icon{font-size:56px;margin-bottom:12px;line-height:1;}
+.thanks-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:#0f172a;}
+.thanks-sub{color:#64748b;font-size:14px;margin-top:8px;line-height:1.6;}
+.again-btn{margin-top:20px;padding:10px 20px;background:#f1f5f9;border:none;border-radius:10px;color:#475569;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="progress" id="progress"></div>
+  <div id="q-area">
+    <div class="q-label" id="q-label">Scenario 1 of 6</div>
+    <div class="q-text" id="q-text">Loading…</div>
+    <div class="options" id="options"></div>
+    <button class="next-btn" id="next-btn" onclick="submitNext()">Next →</button>
+  </div>
+  <div class="thanks" id="thanks">
+    <div class="thanks-icon">🎉</div>
+    <div class="thanks-title">Thank you!</div>
+    <div class="thanks-sub">Your responses have been recorded.<br>Watch the live results on screen!</div>
+    <button class="again-btn" onclick="restart()">Respond again</button>
+  </div>
+</div>
+
+<script>
+const LETTERS = "ABC";
+var db;
+var sIdx = 0;
+var picks = {};
+
+firebase.initializeApp(FIREBASE_CONFIG);
+db = firebase.database();
+renderQ();
+
+function renderQ(){
+  if(sIdx >= QUESTIONS.length){
+    document.getElementById("q-area").style.display = "none";
+    document.getElementById("thanks").classList.add("vis");
+    return;
+  }
+  document.getElementById("q-area").style.display = "block";
+  document.getElementById("thanks").classList.remove("vis");
+
+  var q = QUESTIONS[sIdx];
+  document.getElementById("progress").innerHTML = QUESTIONS.map(function(_,i){
+    return '<div class="prog-dot '+(i<sIdx?"done":i===sIdx?"active":"")+'"></div>';
+  }).join('');
+  document.getElementById("q-label").textContent = "Scenario "+(sIdx+1)+" of "+QUESTIONS.length;
+  document.getElementById("q-text").textContent = q.text;
+
+  document.getElementById("options").innerHTML = OPTIONS.map(function(opt,i){
+    return '<button class="opt '+(picks[q.id]===i?"sel":"")+ '" onclick="pick('+i+')">' +
+      '<span class="opt-letter">'+LETTERS[i]+'</span>'+opt+
+    '</button>';
+  }).join('');
+
+  var nxt = document.getElementById("next-btn");
+  if(picks[q.id] !== undefined){
+    nxt.classList.add("vis");
+    nxt.textContent = sIdx < QUESTIONS.length-1 ? "Next →" : "Submit ✓";
+  } else {
+    nxt.classList.remove("vis");
+  }
+}
+
+function pick(i){
+  picks[QUESTIONS[sIdx].id] = i;
+  renderQ();
+}
+
+function submitNext(){
+  var q = QUESTIONS[sIdx];
+  var sel = picks[q.id];
+  if(sel === undefined) return;
+  db.ref("responses/"+q.id+"/"+sel).transaction(function(cur){ return (cur||0)+1; });
+  sIdx++;
+  renderQ();
+}
+
+function restart(){
+  sIdx = 0;
+  picks = {};
+  renderQ();
+}
+</script>
+</body>
+</html>
