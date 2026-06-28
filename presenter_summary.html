@@ -25,13 +25,16 @@ const QUESTIONS = [
   { id:"s7", short:"200 hrs/mo chromatogram review" }
 ];
 const OPTIONS = ["AI", "Coding", "Automation"];
+const OPT_SHORT = ["AI", "Cod", "Aut"];
+// Correct answer index per scenario (0=AI, 1=Coding, 2=Automation)
+const CORRECT = { s1:1, s2:0, s3:1, s4:2, s5:1, s6:2, s7:0 };
 const ROLES = [
-  { key:"academic",   label:"Academic" },
-  { key:"discovery",  label:"Discovery" },
-  { key:"development", label:"Development" },
-  { key:"regulated",  label:"Regulated" },
-  { key:"cro",        label:"CRO" },
-  { key:"operations", label:"Lab Ops" }
+  { key:"academic",   label:"Academic",              rgb:"42,120,214" },
+  { key:"discovery",  label:"Industry — Discovery",  rgb:"27,175,122" },
+  { key:"development", label:"Industry — Development", rgb:"237,161,0" },
+  { key:"regulated",  label:"Industry — Regulated",  rgb:"74,58,167" },
+  { key:"cro",        label:"CRO / Service Lab",     rgb:"227,73,72" },
+  { key:"operations", label:"Lab Management / Ops",  rgb:"25,158,112" }
 ];
 </script>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
@@ -45,7 +48,7 @@ html, body {
   background:#ffffff; color:#0f172a;
   display:flex; flex-direction:column;
 }
-.topbar { display:flex; align-items:center; justify-content:space-between; padding:6px 12px; flex-shrink:0; }
+.topbar { display:flex; align-items:center; padding:6px 12px 4px; flex-shrink:0; }
 .live-badge {
   display:flex; align-items:center; gap:5px; font-size:10px; color:#0e7490;
   background:rgba(14,116,144,.08); padding:2px 8px; border-radius:20px;
@@ -54,116 +57,105 @@ html, body {
 .live-dot { width:5px; height:5px; border-radius:50%; background:#0e7490; animation:pls 1.8s ease-in-out infinite; }
 @keyframes pls { 0%,100%{opacity:1;} 50%{opacity:.3;} }
 
-/* Role filter */
-.filters { display:flex; gap:4px; flex-wrap:wrap; }
-.filter-btn {
-  padding:3px 9px; border:1px solid #cbd5e1; background:transparent;
-  color:#64748b; border-radius:5px; font-size:10px; cursor:pointer;
-  font-family:'Century Gothic',Futura,'Trebuchet MS',sans-serif; transition:all .15s;
+/* 3 x 2 grid of role cards */
+.role-grid {
+  flex:1;
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  grid-template-rows:1fr 1fr;
+  gap:8px;
+  padding:4px 10px 10px;
+  min-height:0;
 }
-.filter-btn.active { background:#0e7490; border-color:#0e7490; color:#fff; }
-
-/* Heatmap */
-.heatmap { flex:1; padding:6px 14px 12px; display:flex; flex-direction:column; min-height:0; }
-.hm-grid { flex:1; display:grid; gap:4px; min-height:0; }
-.hm-corner { }
-.hm-colhead {
+.role-card {
+  display:flex; flex-direction:column;
+  background:#f8fafc; border-radius:8px;
+  padding:8px 10px; overflow:hidden; min-height:0;
+}
+.role-name {
+  font-size:clamp(10px,1.2vw,13px); font-weight:700;
+  margin-bottom:5px; flex-shrink:0;
+  padding-bottom:4px; border-bottom:0.5px solid #e2e8f0;
+}
+.mini {
+  flex:1; display:grid;
+  grid-template-columns:1.7fr 1fr 1fr 1fr;
+  gap:2px; min-height:0;
+}
+.mini-corner {}
+.mini-colhead {
   display:flex; align-items:center; justify-content:center;
-  font-size:clamp(11px,1.4vw,15px); font-weight:700; color:#0f172a;
+  font-size:clamp(8px,0.95vw,10px); color:#64748b; font-weight:600;
 }
-.hm-rowhead {
+.mini-rowhead {
   display:flex; align-items:center;
-  font-size:clamp(10px,1.2vw,13px); font-weight:600; color:#334155;
-  padding-right:8px; text-align:left;
+  font-size:clamp(8px,0.9vw,10px); color:#475569;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.hm-cell {
+.mini-cell {
   display:flex; align-items:center; justify-content:center;
-  border-radius:6px; font-size:clamp(11px,1.4vw,16px); font-weight:700;
+  border-radius:3px; font-size:clamp(8px,0.95vw,11px); font-weight:700;
   color:#0f172a; transition:background .5s, color .5s;
-  position:relative;
 }
-.hm-cell small { font-size:0.7em; font-weight:500; opacity:0.7; margin-left:2px; }
+.mini-cell.correct {
+  box-shadow:0 0 0 2px #16a34a;
+  border-radius:3px;
+}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <div class="live-badge"><div class="live-dot"></div>LIVE — ALL SCENARIOS</div>
-  <div class="filters" id="filters"></div>
+  <div class="live-badge"><div class="live-dot"></div>LIVE — BY ROLE</div>
 </div>
-<div class="heatmap">
-  <div class="hm-grid" id="hm-grid"></div>
-</div>
+<div class="role-grid" id="role-grid"></div>
 <script>
-var R={}, db=null, activeRole="all";
+var R={}, db=null;
 
 Office.onReady(function(){
   try { firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); } catch(e){ console.error(e); }
-  buildFilters();
   buildGrid();
   if(db){
     db.ref("responses").on("value",function(snap){
-      try { R=snap.val()||{}; renderHeatmap(); } catch(e){}
+      try { R=snap.val()||{}; renderAll(); } catch(e){}
     },function(err){ console.error(err); });
   }
 });
 
-function buildFilters(){
-  var f=document.getElementById("filters");
-  var btns=[{key:"all",label:"All roles"}].concat(ROLES);
-  f.innerHTML=btns.map(function(b){
-    return '<button class="filter-btn'+(b.key==="all"?" active":"")+'" data-role="'+b.key+'" onclick="setRole(\''+b.key+'\')">'+b.label+'</button>';
+function buildGrid(){
+  var grid=document.getElementById("role-grid");
+  grid.innerHTML=ROLES.map(function(role){
+    var head='<div class="mini-corner"></div>'+
+      OPT_SHORT.map(function(o){ return '<div class="mini-colhead">'+o+'</div>'; }).join('');
+    var rows=QUESTIONS.map(function(q,qi){
+      var cells=OPTIONS.map(function(_,oi){
+        var isCorrect = CORRECT[q.id]===oi ? " correct" : "";
+        return '<div class="mini-cell'+isCorrect+'" id="c_'+role.key+'_'+qi+'_'+oi+'">0</div>';
+      }).join('');
+      return '<div class="mini-rowhead" title="'+q.short+'">'+q.short+'</div>'+cells;
+    }).join('');
+    return '<div class="role-card">'+
+      '<div class="role-name" style="color:rgb('+role.rgb+')">'+role.label+'</div>'+
+      '<div class="mini">'+head+rows+'</div>'+
+    '</div>';
   }).join('');
 }
 
-function setRole(roleKey){
-  activeRole=roleKey;
-  document.querySelectorAll(".filter-btn").forEach(function(b){
-    b.classList.toggle("active", b.getAttribute("data-role")===roleKey);
-  });
-  renderHeatmap();
-}
-
-function buildGrid(){
-  var grid=document.getElementById("hm-grid");
-  // columns: 1 row label + 3 answers ; rows: 1 header + 7 scenarios
-  grid.style.gridTemplateColumns="minmax(120px, 1.6fr) repeat(3, 1fr)";
-  grid.style.gridTemplateRows="auto repeat(7, 1fr)";
-  var html='<div class="hm-corner"></div>';
-  OPTIONS.forEach(function(opt){ html+='<div class="hm-colhead">'+opt+'</div>'; });
-  QUESTIONS.forEach(function(q,qi){
-    html+='<div class="hm-rowhead">'+q.short+'</div>';
-    OPTIONS.forEach(function(_,oi){
-      html+='<div class="hm-cell" id="cell'+qi+'_'+oi+'">0%</div>';
-    });
-  });
-  grid.innerHTML=html;
-}
-
-function renderHeatmap(){
-  QUESTIONS.forEach(function(q,qi){
-    var data=R[q.id]||{};
-    // sum counts per answer, filtered by role
-    var answerCounts=OPTIONS.map(function(_,oi){
-      if(activeRole==="all"){
-        var s=0;
-        ROLES.forEach(function(r){ if(data[r.key]&&data[r.key][oi]) s+=data[r.key][oi]; });
-        return s;
-      } else {
-        return (data[activeRole]&&data[activeRole][oi]) ? data[activeRole][oi] : 0;
-      }
-    });
-    var total=answerCounts.reduce(function(a,b){return a+b;},0);
-    OPTIONS.forEach(function(_,oi){
-      var c=answerCounts[oi];
-      var pct=total>0?Math.round(c/total*100):0;
-      var cell=document.getElementById("cell"+qi+"_"+oi);
-      if(cell){
-        // color intensity by pct: teal scale
-        var alpha=total>0?(0.08+0.92*(pct/100)):0.04;
-        cell.style.background="rgba(14,116,144,"+alpha.toFixed(2)+")";
-        cell.style.color = pct>55 ? "#fff" : "#0f172a";
-        cell.innerHTML=pct+'%<small>('+c+')</small>';
-      }
+function renderAll(){
+  ROLES.forEach(function(role){
+    QUESTIONS.forEach(function(q,qi){
+      var data=(R[q.id] && R[q.id][role.key]) ? R[q.id][role.key] : {};
+      var total=OPTIONS.reduce(function(a,_,oi){ return a+(data[oi]||0); },0);
+      OPTIONS.forEach(function(_,oi){
+        var c=data[oi]||0;
+        var pct=total>0?Math.round(c/total*100):0;
+        var cell=document.getElementById("c_"+role.key+"_"+qi+"_"+oi);
+        if(cell){
+          var alpha=total>0?(0.08+0.92*(pct/100)):0.04;
+          cell.style.background="rgba("+role.rgb+","+alpha.toFixed(2)+")";
+          cell.style.color = pct>55 ? "#fff" : "#0f172a";
+          cell.textContent = total>0 ? pct+"%" : "–";
+        }
+      });
     });
   });
 }

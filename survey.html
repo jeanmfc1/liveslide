@@ -89,7 +89,7 @@ activeQ=QUESTIONS.find(function(q){return q.id===scenarioId;}) || QUESTIONS[0];
 
 // Check if role already chosen this session
 try {
-  var savedRole=sessionStorage.getItem("liveslide_role");
+  var savedRole=localStorage.getItem("liveslide_role");
   if(savedRole){ myRole=savedRole; stage="scenario"; }
 } catch(e){}
 
@@ -112,7 +112,7 @@ function renderRole(){
 
 function pickRole(roleKey){
   myRole=roleKey;
-  try { sessionStorage.setItem("liveslide_role", roleKey); } catch(e){}
+  try { localStorage.setItem("liveslide_role", roleKey); } catch(e){}
   stage="scenario";
   renderStage();
 }
@@ -128,7 +128,7 @@ function renderScenario(){
 }
 
 function changeRole(){
-  try { sessionStorage.removeItem("liveslide_role"); } catch(e){}
+  try { localStorage.removeItem("liveslide_role"); } catch(e){}
   myRole=null; stage="role"; submitted=false;
   document.getElementById("done-msg").classList.remove("vis");
   document.getElementById("q-area").style.display="block";
