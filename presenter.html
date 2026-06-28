@@ -86,6 +86,10 @@ html, body {
 .bar-track { height:clamp(40px,7.5vh,64px); background:#f1f5f9; border-radius:6px; overflow:hidden; display:flex; }
 .bar-seg { height:100%; width:0; transition:width .7s cubic-bezier(.34,1.4,.64,1); }
 .bar-pct { font-size:clamp(12px,1.4vw,15px); font-weight:700; color:#0e7490; }
+.bar-breakdown { grid-column:2 / 3; display:flex; flex-wrap:wrap; gap:3px 10px; margin-top:2px; }
+.bd-item { display:flex; align-items:center; gap:3px; font-size:clamp(8px,0.95vw,10px); color:#64748b; }
+.bd-dot { width:7px; height:7px; border-radius:2px; flex-shrink:0; }
+.bar-block { display:contents; }
 
 /* Legend */
 .legend { display:flex; flex-wrap:wrap; gap:8px 14px; padding:2px 0; flex-shrink:0; justify-content:center; }
@@ -204,10 +208,20 @@ function renderChart(){
         var segW=sum>0?(v/sum*100).toFixed(1):0;
         return '<div class="bar-seg" id="seg'+oi+'_'+ri+'" style="background:'+r.color+';" data-w="'+segW+'"></div>';
       }).join('');
-      return '<div class="bar-row">'+
-        '<div class="bar-label">'+opt+'</div>'+
-        '<div class="bar-track" id="track'+oi+'" style="width:0%" data-w="'+trackWidth+'">'+segs+'</div>'+
-        '<div class="bar-pct">'+pct+'%</div>'+
+      // build per-role breakdown (only roles with votes)
+      var bd=ROLES.map(function(r,ri){
+        var v=optTotals[oi][ri];
+        if(v===0) return '';
+        var rolePct=sum>0?Math.round(v/sum*100):0;
+        return '<div class="bd-item"><div class="bd-dot" style="background:'+r.color+'"></div>'+r.label+' '+rolePct+'%</div>';
+      }).join('');
+      return '<div class="bar-block">'+
+        '<div class="bar-row">'+
+          '<div class="bar-label">'+opt+'</div>'+
+          '<div class="bar-track" id="track'+oi+'" style="width:0%" data-w="'+trackWidth+'">'+segs+'</div>'+
+          '<div class="bar-pct">'+pct+'%</div>'+
+        '</div>'+
+        '<div class="bar-row"><div></div><div class="bar-breakdown">'+bd+'</div><div></div></div>'+
       '</div>';
     }).join('');
 
