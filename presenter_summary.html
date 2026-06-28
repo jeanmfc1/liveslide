@@ -16,18 +16,22 @@ const FIREBASE_CONFIG = {
   appId:             "1:859652803820:web:75b5e37d7035a70c3ae9c9"
 };
 const QUESTIONS = [
-  { id:"s1", text:"Sponsor report formats need manual reformatting from LIMS" },
-  { id:"s2", text:"QC passes but trends shift after reagent lot changes" },
-  { id:"s3", text:"Validation summary tables built from multiple queries by hand" },
-  { id:"s4", text:"Assay fails for Analyst A but passes for Analyst B" },
-  { id:"s5", text:"Missed TAT due to double-booked instrument" },
-  { id:"s6", text:"Long separation limits sample output" }
+  { id:"s1", short:"Sponsor report reformatting" },
+  { id:"s2", short:"QC trends after lot changes" },
+  { id:"s3", short:"Validation tables by hand" },
+  { id:"s4", short:"Analyst A vs B discrepancy" },
+  { id:"s5", short:"Missed TAT (instrument)" },
+  { id:"s6", short:"Long separation / throughput" },
+  { id:"s7", short:"200 hrs/mo chromatogram review" }
 ];
 const OPTIONS = ["AI", "Coding", "Automation"];
-const COLORS = [
-  "linear-gradient(90deg,#0369a1,#00d4ff)",
-  "linear-gradient(90deg,#4c1d95,#7c6fea)",
-  "linear-gradient(90deg,#065f46,#3ddc97)"
+const ROLES = [
+  { key:"academic",   label:"Academic" },
+  { key:"discovery",  label:"Discovery" },
+  { key:"development", label:"Development" },
+  { key:"regulated",  label:"Regulated" },
+  { key:"cro",        label:"CRO" },
+  { key:"operations", label:"Lab Ops" }
 ];
 </script>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
@@ -41,130 +45,125 @@ html, body {
   background:#ffffff; color:#0f172a;
   display:flex; flex-direction:column;
 }
-
-.topbar {
-  display:flex; align-items:center;
-  padding:5px 10px; flex-shrink:0;
-}
+.topbar { display:flex; align-items:center; justify-content:space-between; padding:6px 12px; flex-shrink:0; }
 .live-badge {
-  display:flex; align-items:center; gap:5px;
-  font-size:10px; color:#0e7490;
+  display:flex; align-items:center; gap:5px; font-size:10px; color:#0e7490;
   background:rgba(14,116,144,.08); padding:2px 8px; border-radius:20px;
   border:1px solid rgba(14,116,144,.25);
 }
 .live-dot { width:5px; height:5px; border-radius:50%; background:#0e7490; animation:pls 1.8s ease-in-out infinite; }
 @keyframes pls { 0%,100%{opacity:1;} 50%{opacity:.3;} }
 
-.grid {
-  flex:1;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  grid-template-rows:1fr 1fr 1fr;
-  gap:6px;
-  padding:4px 8px 8px;
-  min-height:0;
+/* Role filter */
+.filters { display:flex; gap:4px; flex-wrap:wrap; }
+.filter-btn {
+  padding:3px 9px; border:1px solid #cbd5e1; background:transparent;
+  color:#64748b; border-radius:5px; font-size:10px; cursor:pointer;
+  font-family:'Century Gothic',Futura,'Trebuchet MS',sans-serif; transition:all .15s;
 }
+.filter-btn.active { background:#0e7490; border-color:#0e7490; color:#fff; }
 
-.card {
-  display:flex; flex-direction:column;
-  background:#f8fafc; border-radius:8px;
-  padding:8px 10px; overflow:hidden; min-height:0;
+/* Heatmap */
+.heatmap { flex:1; padding:6px 14px 12px; display:flex; flex-direction:column; min-height:0; }
+.hm-grid { flex:1; display:grid; gap:4px; min-height:0; }
+.hm-corner { }
+.hm-colhead {
+  display:flex; align-items:center; justify-content:center;
+  font-size:clamp(11px,1.4vw,15px); font-weight:700; color:#0f172a;
 }
-
-.card-title {
-  font-size:clamp(11px,1.3vw,14px);
-  font-weight:700; color:#0f172a;
-  line-height:1.2; margin-bottom:6px; flex-shrink:0;
+.hm-rowhead {
+  display:flex; align-items:center;
+  font-size:clamp(10px,1.2vw,13px); font-weight:600; color:#334155;
+  padding-right:8px; text-align:left;
 }
-
-.bars {
-  flex:1; display:flex; flex-direction:column;
-  justify-content:space-evenly; min-height:0;
+.hm-cell {
+  display:flex; align-items:center; justify-content:center;
+  border-radius:6px; font-size:clamp(11px,1.4vw,16px); font-weight:700;
+  color:#0f172a; transition:background .5s, color .5s;
+  position:relative;
 }
-
-.bar-row {
-  display:grid;
-  grid-template-columns:62px 1fr 38px;
-  align-items:center; gap:6px;
-}
-
-.bar-label {
-  font-size:clamp(10px,1.1vw,13px);
-  color:#334155; text-align:right; font-weight:600;
-}
-
-.bar-track {
-  height:clamp(14px,2.8vh,26px);
-  background:#e2e8f0; border-radius:4px; overflow:hidden;
-}
-
-.bar-fill {
-  height:100%; width:0; border-radius:4px;
-  transition:width .7s cubic-bezier(.34,1.4,.64,1);
-}
-
-.bar-pct {
-  font-size:clamp(10px,1.1vw,13px);
-  font-weight:700; color:#0e7490;
-}
+.hm-cell small { font-size:0.7em; font-weight:500; opacity:0.7; margin-left:2px; }
 </style>
 </head>
 <body>
-
 <div class="topbar">
   <div class="live-badge"><div class="live-dot"></div>LIVE — ALL SCENARIOS</div>
+  <div class="filters" id="filters"></div>
 </div>
-
-<div class="grid" id="grid"></div>
-
+<div class="heatmap">
+  <div class="hm-grid" id="hm-grid"></div>
+</div>
 <script>
-var R = {}, db = null;
+var R={}, db=null, activeRole="all";
 
 Office.onReady(function(){
-  try {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.database();
-  } catch(e){ console.error(e); }
-
+  try { firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); } catch(e){ console.error(e); }
+  buildFilters();
   buildGrid();
-
   if(db){
-    db.ref("responses").on("value", function(snap){
-      try { R = snap.val() || {}; renderAll(); } catch(e){}
-    }, function(err){ console.error(err); });
+    db.ref("responses").on("value",function(snap){
+      try { R=snap.val()||{}; renderHeatmap(); } catch(e){}
+    },function(err){ console.error(err); });
   }
 });
 
-function buildGrid(){
-  var grid = document.getElementById("grid");
-  grid.innerHTML = QUESTIONS.map(function(q, qi){
-    var bars = OPTIONS.map(function(opt, i){
-      return '<div class="bar-row">'+
-        '<div class="bar-label">'+opt+'</div>'+
-        '<div class="bar-track"><div class="bar-fill" id="f'+qi+'_'+i+'" style="background:'+COLORS[i]+'"></div></div>'+
-        '<div class="bar-pct" id="p'+qi+'_'+i+'">0%</div>'+
-      '</div>';
-    }).join('');
-    return '<div class="card">'+
-      '<div class="card-title">'+q.text+'</div>'+
-      '<div class="bars">'+bars+'</div>'+
-    '</div>';
+function buildFilters(){
+  var f=document.getElementById("filters");
+  var btns=[{key:"all",label:"All roles"}].concat(ROLES);
+  f.innerHTML=btns.map(function(b){
+    return '<button class="filter-btn'+(b.key==="all"?" active":"")+'" data-role="'+b.key+'" onclick="setRole(\''+b.key+'\')">'+b.label+'</button>';
   }).join('');
 }
 
-function renderAll(){
-  QUESTIONS.forEach(function(q, qi){
-    var counts = R[q.id] || {};
-    var total = OPTIONS.reduce(function(a,_,i){ return a+(counts[i]||0); }, 0);
-    var maxC = Math.max.apply(null,[1].concat(OPTIONS.map(function(_,i){ return counts[i]||0; })));
-    OPTIONS.forEach(function(_, i){
-      var c = counts[i]||0;
-      var pct = total>0 ? Math.round(c/total*100) : 0;
-      var w = (c/maxC*100).toFixed(1);
-      var f = document.getElementById("f"+qi+"_"+i);
-      if(f) f.style.width = w+"%";
-      var p = document.getElementById("p"+qi+"_"+i);
-      if(p) p.textContent = pct+"%";
+function setRole(roleKey){
+  activeRole=roleKey;
+  document.querySelectorAll(".filter-btn").forEach(function(b){
+    b.classList.toggle("active", b.getAttribute("data-role")===roleKey);
+  });
+  renderHeatmap();
+}
+
+function buildGrid(){
+  var grid=document.getElementById("hm-grid");
+  // columns: 1 row label + 3 answers ; rows: 1 header + 7 scenarios
+  grid.style.gridTemplateColumns="minmax(120px, 1.6fr) repeat(3, 1fr)";
+  grid.style.gridTemplateRows="auto repeat(7, 1fr)";
+  var html='<div class="hm-corner"></div>';
+  OPTIONS.forEach(function(opt){ html+='<div class="hm-colhead">'+opt+'</div>'; });
+  QUESTIONS.forEach(function(q,qi){
+    html+='<div class="hm-rowhead">'+q.short+'</div>';
+    OPTIONS.forEach(function(_,oi){
+      html+='<div class="hm-cell" id="cell'+qi+'_'+oi+'">0%</div>';
+    });
+  });
+  grid.innerHTML=html;
+}
+
+function renderHeatmap(){
+  QUESTIONS.forEach(function(q,qi){
+    var data=R[q.id]||{};
+    // sum counts per answer, filtered by role
+    var answerCounts=OPTIONS.map(function(_,oi){
+      if(activeRole==="all"){
+        var s=0;
+        ROLES.forEach(function(r){ if(data[r.key]&&data[r.key][oi]) s+=data[r.key][oi]; });
+        return s;
+      } else {
+        return (data[activeRole]&&data[activeRole][oi]) ? data[activeRole][oi] : 0;
+      }
+    });
+    var total=answerCounts.reduce(function(a,b){return a+b;},0);
+    OPTIONS.forEach(function(_,oi){
+      var c=answerCounts[oi];
+      var pct=total>0?Math.round(c/total*100):0;
+      var cell=document.getElementById("cell"+qi+"_"+oi);
+      if(cell){
+        // color intensity by pct: teal scale
+        var alpha=total>0?(0.08+0.92*(pct/100)):0.04;
+        cell.style.background="rgba(14,116,144,"+alpha.toFixed(2)+")";
+        cell.style.color = pct>55 ? "#fff" : "#0f172a";
+        cell.innerHTML=pct+'%<small>('+c+')</small>';
+      }
     });
   });
 }

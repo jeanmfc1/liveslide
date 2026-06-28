@@ -20,43 +20,51 @@ const QUESTIONS = [
   { id:"s3", text:"Validation summary tables built from multiple queries by hand" },
   { id:"s4", text:"Assay fails for Analyst A but passes for Analyst B" },
   { id:"s5", text:"Missed TAT due to double-booked instrument" },
-  { id:"s6", text:"Long separation limits sample output" }
+  { id:"s6", text:"Long separation limits sample output" },
+  { id:"s7", text:"200 analyst-hours/month on chromatogram review" }
 ];
 const OPTIONS = ["AI", "Coding", "Automation"];
+const ROLES = [
+  { key:"academic",   label:"Academic" },
+  { key:"discovery",  label:"Industry — Discovery" },
+  { key:"development", label:"Industry — Development" },
+  { key:"regulated",  label:"Industry — Regulated (GxP)" },
+  { key:"cro",        label:"CRO / Service Lab" },
+  { key:"operations", label:"Lab Management / Operations" }
+];
 </script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{min-height:100%;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#0f172a;}
+html,body{min-height:100%;font-family:'Century Gothic',Futura,'Trebuchet MS',sans-serif;background:#f1f5f9;color:#0f172a;}
 body{display:flex;align-items:center;justify-content:center;padding:20px;min-height:100vh;}
 .card{background:#fff;border-radius:20px;padding:clamp(28px,5vw,40px);max-width:440px;width:100%;box-shadow:0 20px 60px rgba(15,23,42,.1);}
 .q-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;margin-bottom:10px;}
-.q-text{font-family:'Syne',sans-serif;font-size:clamp(18px,4vw,23px);font-weight:700;color:#0f172a;line-height:1.35;margin-bottom:22px;}
-.options{display:flex;flex-direction:column;gap:11px;}
+.q-text{font-size:clamp(18px,4vw,23px);font-weight:700;color:#0f172a;line-height:1.35;margin-bottom:22px;}
+.options{display:flex;flex-direction:column;gap:10px;}
 .opt{
   display:flex;align-items:center;gap:14px;
   padding:15px 18px;border:2px solid #e2e8f0;border-radius:13px;
-  background:#fff;cursor:pointer;font-size:16px;font-family:'DM Sans',sans-serif;
+  background:#fff;cursor:pointer;font-size:15px;
+  font-family:'Century Gothic',Futura,'Trebuchet MS',sans-serif;
   transition:all .15s;text-align:left;width:100%;font-weight:500;color:#334155;
 }
 .opt:hover{border-color:#0e7490;background:#ecfeff;color:#0e7490;}
 .opt.submitted{border-color:#16a34a;background:#f0fdf4;color:#16a34a;cursor:default;pointer-events:none;}
 .opt-letter{width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;transition:all .15s;}
 .opt.submitted .opt-letter{background:#16a34a;color:#fff;}
-
 .done-msg{margin-top:20px;text-align:center;display:none;}
 .done-msg.vis{display:block;}
 .done-icon{font-size:48px;margin-bottom:10px;line-height:1;}
-.done-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#0f172a;}
+.done-title{font-size:22px;font-weight:700;color:#0f172a;}
 .done-sub{color:#64748b;font-size:14px;margin-top:6px;line-height:1.6;}
 </style>
 </head>
 <body>
 <div class="card">
   <div id="q-area">
-    <div class="q-label" id="q-label">How would you respond?</div>
+    <div class="q-label" id="q-label"></div>
     <div class="q-text" id="q-text">Loading…</div>
     <div class="options" id="options"></div>
   </div>
@@ -67,44 +75,66 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
   </div>
 </div>
 <script>
-var db, activeQ=null, submitted=false;
+var db, activeQ=null, stage="role", myRole=null, submitted=false;
 
 firebase.initializeApp(FIREBASE_CONFIG);
 db=firebase.database();
 
-// Read ?s= param to find which scenario
 var urlParams=new URLSearchParams(window.location.search);
 var scenarioId=urlParams.get('s');
-if(scenarioId){
-  activeQ=QUESTIONS.find(function(q){return q.id===scenarioId;});
+activeQ=QUESTIONS.find(function(q){return q.id===scenarioId;}) || QUESTIONS[0];
+
+// Check if role already chosen this session
+try {
+  var savedRole=sessionStorage.getItem("liveslide_role");
+  if(savedRole){ myRole=savedRole; stage="scenario"; }
+} catch(e){}
+
+renderStage();
+
+function renderStage(){
+  if(stage==="role") renderRole();
+  else renderScenario();
 }
-// Fallback: show first scenario
-if(!activeQ) activeQ=QUESTIONS[0];
 
-renderQ();
+function renderRole(){
+  document.getElementById("q-label").textContent="First, tell us about yourself";
+  document.getElementById("q-text").textContent="What best describes you?";
+  document.getElementById("options").innerHTML=ROLES.map(function(r,i){
+    return '<button class="opt" onclick="pickRole(\''+r.key+'\')">'+
+      '<span class="opt-letter">'+(i+1)+'</span>'+r.label+
+    '</button>';
+  }).join('');
+}
 
-function renderQ(){
+function pickRole(roleKey){
+  myRole=roleKey;
+  try { sessionStorage.setItem("liveslide_role", roleKey); } catch(e){}
+  stage="scenario";
+  renderStage();
+}
+
+function renderScenario(){
+  document.getElementById("q-label").textContent="How would you respond?";
   document.getElementById("q-text").textContent=activeQ.text;
   document.getElementById("options").innerHTML=OPTIONS.map(function(opt,i){
-    return '<button class="opt" onclick="pick('+i+')">'+
+    return '<button class="opt" onclick="pickAnswer('+i+')">'+
       '<span class="opt-letter">'+"ABC"[i]+'</span>'+opt+
     '</button>';
   }).join('');
 }
 
-function pick(i){
+function pickAnswer(i){
   if(submitted) return;
   submitted=true;
-  db.ref("responses/"+activeQ.id+"/"+i).transaction(function(cur){return (cur||0)+1;});
-  // Show submitted state on button
+  // Store as responses/{scenario}/{role}/{answerIndex}
+  db.ref("responses/"+activeQ.id+"/"+myRole+"/"+i).transaction(function(cur){return (cur||0)+1;});
   var opts=document.querySelectorAll(".opt");
   opts.forEach(function(o,idx){
     if(idx===i) o.classList.add("submitted");
     else o.style.opacity="0.35";
   });
-  // Update letter to checkmark
   opts[i].querySelector(".opt-letter").textContent="✓";
-  // Show done message after brief delay
   setTimeout(function(){
     document.getElementById("q-area").style.display="none";
     document.getElementById("done-msg").classList.add("vis");
