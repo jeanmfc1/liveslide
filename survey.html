@@ -59,6 +59,8 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
 .done-icon{font-size:48px;margin-bottom:10px;line-height:1;}
 .done-title{font-size:22px;font-weight:700;color:#0f172a;}
 .done-sub{color:#64748b;font-size:14px;margin-top:6px;line-height:1.6;}
+.change-role-link{display:inline-block;margin-top:18px;font-size:12px;color:#94a3b8;text-decoration:underline;cursor:pointer;}
+.change-role-link:hover{color:#0e7490;}
 </style>
 </head>
 <body>
@@ -72,6 +74,7 @@ body{display:flex;align-items:center;justify-content:center;padding:20px;min-hei
     <div class="done-icon">✅</div>
     <div class="done-title">Response recorded!</div>
     <div class="done-sub">Watch the live results<br>on the presentation screen.</div>
+    <a class="change-role-link" onclick="changeRole()">change role &amp; test again</a>
   </div>
 </div>
 <script>
@@ -122,6 +125,14 @@ function renderScenario(){
       '<span class="opt-letter">'+"ABC"[i]+'</span>'+opt+
     '</button>';
   }).join('');
+}
+
+function changeRole(){
+  try { sessionStorage.removeItem("liveslide_role"); } catch(e){}
+  myRole=null; stage="role"; submitted=false;
+  document.getElementById("done-msg").classList.remove("vis");
+  document.getElementById("q-area").style.display="block";
+  renderStage();
 }
 
 function pickAnswer(i){
