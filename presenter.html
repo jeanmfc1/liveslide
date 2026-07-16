@@ -130,6 +130,21 @@ html, body {
 <script>
 var R={}, activeQ=null, db=null, currentListener=null;
 
+// --- Instant-paint cache -------------------------------------------------
+// Office unloads the add-in when the slide is >1 away, so every revisit is a
+// cold start. We snapshot the last-known counts locally and paint from them
+// immediately, then let Firebase correct us a moment later.
+function cacheKey(qId){ return "liveslide_cache_"+qId; }
+function loadCache(qId){
+  try {
+    var raw = localStorage.getItem(cacheKey(qId));
+    return raw ? JSON.parse(raw) : null;
+  } catch(e){ return null; }
+}
+function saveCache(qId, data){
+  try { localStorage.setItem(cacheKey(qId), JSON.stringify(data||{})); } catch(e){}
+}
+
 Office.onReady(function(){
   try { firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); } catch(e){ console.error(e); }
   buildSetupButtons();
@@ -138,7 +153,26 @@ Office.onReady(function(){
     var saved=localStorage.getItem("liveslide_question");
     if(saved) selectQuestion(saved); else showSetup();
   } catch(e){ showSetup(); }
+
+  // Force periodic repaint — Office add-ins can freeze rendering during slideshow.
+  // This nudges the browser to repaint even when the slideshow is active.
+  startRepaintTicker();
 });
+
+function startRepaintTicker(){
+  var toggle=false;
+  setInterval(function(){
+    try {
+      var p=document.getElementById("presenter");
+      if(!p || p.style.display==="none") return;
+      // Tiny forced reflow: flip an imperceptible transform to make Office repaint.
+      toggle=!toggle;
+      p.style.transform = toggle ? "translateZ(0)" : "none";
+      // Also re-read a layout property to force reflow.
+      void p.offsetHeight;
+    } catch(e){}
+  }, 1000);
+}
 
 function buildSetupButtons(){
   var c=document.getElementById("q-buttons");
@@ -170,11 +204,18 @@ function selectQuestion(qId){
   document.getElementById("q-text").textContent=activeQ.text;
   if(currentListener&&db) db.ref("responses/"+currentListener).off();
   makeQR(activeQ.id);
+  // Paint immediately from cache so bars are on screen before Firebase connects.
+  var cached = loadCache(activeQ.id);
+  if(cached) R[activeQ.id] = cached;
   renderChart();
   if(db){
     currentListener=activeQ.id;
     db.ref("responses/"+activeQ.id).on("value",function(snap){
-      try { R[activeQ.id]=snap.val()||{}; renderChart(); } catch(e){}
+      try {
+        R[activeQ.id]=snap.val()||{};
+        saveCache(activeQ.id, R[activeQ.id]);
+        renderChart();
+      } catch(e){}
     },function(err){ console.error(err); });
   }
 }

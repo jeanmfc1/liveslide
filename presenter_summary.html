@@ -111,15 +111,43 @@ html, body {
 <script>
 var R={}, db=null;
 
+// --- Instant-paint cache (see presenter.html) ---
+function loadCache(){
+  try {
+    var raw = localStorage.getItem("liveslide_cache_all");
+    return raw ? JSON.parse(raw) : null;
+  } catch(e){ return null; }
+}
+function saveCache(data){
+  try { localStorage.setItem("liveslide_cache_all", JSON.stringify(data||{})); } catch(e){}
+}
+
 Office.onReady(function(){
   try { firebase.initializeApp(FIREBASE_CONFIG); db=firebase.database(); } catch(e){ console.error(e); }
   buildGrid();
+  // Paint immediately from cache before Firebase connects.
+  var cached = loadCache();
+  if(cached){ R = cached; renderAll(); }
   if(db){
     db.ref("responses").on("value",function(snap){
-      try { R=snap.val()||{}; renderAll(); } catch(e){}
+      try { R=snap.val()||{}; saveCache(R); renderAll(); } catch(e){}
     },function(err){ console.error(err); });
   }
+  startRepaintTicker();
 });
+
+function startRepaintTicker(){
+  var toggle=false;
+  setInterval(function(){
+    try {
+      var g=document.getElementById("role-grid");
+      if(!g) return;
+      toggle=!toggle;
+      g.style.transform = toggle ? "translateZ(0)" : "none";
+      void g.offsetHeight;
+    } catch(e){}
+  }, 1000);
+}
 
 function buildGrid(){
   var grid=document.getElementById("role-grid");
